@@ -135,9 +135,6 @@ class Problem:
         else:
             return True
 
-    
-
-
 if __name__ == "__main__":
 
     entrada = Product("Entrada", price=15, category="Integer", lowBound=0)
