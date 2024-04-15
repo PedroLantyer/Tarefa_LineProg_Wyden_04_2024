@@ -2,10 +2,10 @@ import pulp
 import sys
 
 class Product:
-    def __init__(self, productName, price, category, lowBound=None, upBound=None) -> None:
+    def __init__(self, productName, profit, category, lowBound=None, upBound=None) -> None:
         self.productName = productName
         self.category = category
-        self.productPrice = price
+        self.productProfitMargin = profit
 
         if(lowBound != None): self.lowBound = lowBound
         else: self.lowBound = None
@@ -48,12 +48,12 @@ class Problem:
         else:
             return True
         
-    def SetPrices(self, productList):
+    def SetProfitMargin(self, productList):
         try:
-            self.priceList = []
+            self.profitMarginList = []
             for i in range(len(productList)):
-                num = int(productList[i].productPrice)
-                self.priceList.append(num)
+                num = int(productList[i].productProfitMargin)
+                self.profitMarginList.append(num)
         
         except Exception as err:
             print("Failed to get num modifiers")
@@ -68,7 +68,7 @@ class Problem:
             if(varList == None): x = self.varList
             else: x = varList
             
-            if(numModifierList == None): a = self.priceList
+            if(numModifierList == None): a = self.profitMarginList
             else: a = numModifierList
 
             e = pulp.LpAffineExpression([(x[i],a[i]) for i in range(len(x))])
@@ -109,7 +109,7 @@ class Problem:
             for i in range(len(self.varList)):
                 varValues.append(self.varList[i].varValue)
                 varNames.append(self.varList[i].name)
-                profit += (varValues[i] * self.priceList[i])
+                profit += (varValues[i] * self.profitMarginList[i])
 
             print("Resultados:")
             print("Lucro: R$%.2f" % profit)
@@ -137,17 +137,18 @@ class Problem:
 
 if __name__ == "__main__":
 
-    entrada = Product("Entrada", price=15, category="Integer", lowBound=0)
-    pratoPrincipal = Product("Prato Principal", price=30, category="Integer", lowBound=0)
-    sobremesa = Product("Sobremesa", price=10, category="Integer", lowBound=0)
+    cafeDaManha = Product("Cafe da Manha", profit=25, category="Integer", lowBound=30, upBound= 130)
+    pratoPrincipal = Product("Prato Principal", profit=30, category="Integer", lowBound=20, upBound=70)
+    coffeeBreak = Product("Coffee Break", profit=20, category="Integer", lowBound=40, upBound=150)
+    jantar = Product("Jantar", profit=40, category="Integer", lowBound=20, upBound=55)
     
     problem = Problem(lpSense=-1)
-    menu = [entrada, pratoPrincipal, sobremesa]
+    menu = [cafeDaManha, pratoPrincipal, coffeeBreak, jantar]
     
     if ( not(problem.SetVariableList(menu)) or 
-    not(problem.SetPrices(menu)) or
+    not(problem.SetProfitMargin(menu)) or
     not(problem.SetObjective()) or
-    not(problem.SetConstraint(numModifierList=[1,1,1], lpSense=(-1), constraintLimit=100)) or
+    not(problem.SetConstraint(numModifierList=[1,1,1,1], lpSense=(-1), constraintLimit=350)) or
     not(problem.SolveProblem())):
         sys.exit(1)
 
