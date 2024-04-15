@@ -28,10 +28,10 @@ class Product:
             return self.productVariable
 
 class Problem:
-    def __init__(self, lpSense) -> None:
+    def __init__(self, lpSense, problemName = None) -> None:
         self.lpSense = lpSense #-1 FOR MAX / 1 FOR MIN / 0 FOR EQUAL TO
-        self.problem = pulp.LpProblem(sense=lpSense)
-        pass
+        if (problemName == None): self.problem = pulp.LpProblem(sense=lpSense)
+        else: self.problem = pulp.LpProblem(name=problemName, sense=lpSense)
 
     def SetVariableList(self, productList):
         try:
@@ -48,15 +48,15 @@ class Problem:
         else:
             return True
         
-    def SetProfitMargin(self, productList):
+    def SetNumModifiers(self, productList):
         try:
-            self.profitMarginList = []
+            self.numModifierList = []
             for i in range(len(productList)):
                 num = int(productList[i].productProfitMargin)
-                self.profitMarginList.append(num)
+                self.numModifierList.append(num)
         
         except Exception as err:
-            print("Failed to get num modifiers")
+            print("Failed to set num modifiers")
             print(err)
             return False
         
@@ -68,7 +68,7 @@ class Problem:
             if(varList == None): x = self.varList
             else: x = varList
             
-            if(numModifierList == None): a = self.profitMarginList
+            if(numModifierList == None): a = self.numModifierList
             else: a = numModifierList
 
             e = pulp.LpAffineExpression([(x[i],a[i]) for i in range(len(x))])
@@ -100,7 +100,7 @@ class Problem:
         else:
             return True
 
-    def PrintResults(self):
+    def PrintPrimalProblemResults(self):
         try:
             profit = 0
             varValues = []
@@ -109,7 +109,7 @@ class Problem:
             for i in range(len(self.varList)):
                 varValues.append(self.varList[i].varValue)
                 varNames.append(self.varList[i].name)
-                profit += (varValues[i] * self.profitMarginList[i])
+                profit += (varValues[i] * self.numModifierList[i])
 
             print("Resultados:")
             print("Lucro: R$%.2f" % profit)
@@ -135,24 +135,30 @@ class Problem:
         else:
             return True
 
-if __name__ == "__main__":
-
+def PrimalProblem():
     cafeDaManha = Product("Cafe da Manha", profit=25, category="Integer", lowBound=30, upBound= 130)
     pratoPrincipal = Product("Prato Principal", profit=30, category="Integer", lowBound=20, upBound=70)
     coffeeBreak = Product("Coffee Break", profit=20, category="Integer", lowBound=40, upBound=150)
     jantar = Product("Jantar", profit=40, category="Integer", lowBound=20, upBound=55)
     
-    primalProblem = Problem(lpSense=-1)
+    primalProblem = Problem(lpSense=(-1), problemName= "Problema Primal")
     menu = [cafeDaManha, pratoPrincipal, coffeeBreak, jantar]
     
-    if ( not(primalProblem.SetVariableList(menu)) or 
-    not(primalProblem.SetProfitMargin(menu)) or
-    not(primalProblem.SetObjective()) or
-    not(primalProblem.SetConstraint(numModifierList=[1,1,1,1], lpSense=(-1), constraintLimit=350)) or
-    not(primalProblem.SolveProblem())):
-        sys.exit(1)
+    try:
+        if not(primalProblem.SetVariableList(menu)): raise Exception("Failed to set variable list")
+        if not(primalProblem.SetNumModifiers(menu)): raise Exception("Failed to set profit margins")
+        if not(primalProblem.SetObjective()): raise Exception("Failed to set objective")
+        if not(primalProblem.SetConstraint(numModifierList=[1,1,1,1], lpSense=(-1), constraintLimit=350)): raise Exception("Failed to set constraints")
+        if not(primalProblem.SolveProblem()): raise Exception("Failed to solve problem")
 
-    if (primalProblem.status == 1):
-        if(primalProblem.PrintResults()): sys.exit(0)
-        sys.exit(1)
+        if (primalProblem.status == 1):
+            if(primalProblem.PrintPrimalProblemResults()): raise Exception("Failed to print results")
+
+    except Exception as err:
+        print(err)
+        print("Failed to solve primal problem")
+
+if __name__ == "__main__":
+
+    PrimalProblem()
 
