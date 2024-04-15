@@ -1,5 +1,6 @@
 import pulp
 import sys
+import os    
 
 class TextHandling:
     def __init__(self) -> None:
@@ -13,6 +14,13 @@ class TextHandling:
                 else: formatedStr += char
             return formatedStr
         return str
+    
+    def ClearScreen(self):
+        match os.name.upper():
+            case "NT":
+                os.system("cls")
+            case _:
+                pass
 
 class Product:
     def __init__(self, productName, profit, category, lowBound=None, upBound=None) -> None:
@@ -94,21 +102,25 @@ class Problem:
         else:
             return True
     
-    def SetNumModifiers(self, varList):
+    def SetNumModifiers(self, varList, numModifierList = None):
         try:
             self.numModifierList = []
-            for i in range(len(varList)):
-                
-                match (self.problemName):
-                    case "Problema Primal":
-                        numMod = int(varList[i].productProfitMargin)
-                    case "Problema Dual":
-                        numMod = int(varList[i].upBound)
-                    case _:
-                        raise Exception("Invalid Problem type")
-                
-                self.numModifierList.append(numMod)
-        
+            if(numModifierList == None):
+                for i in range(len(varList)):
+                    
+                    match (self.problemName):
+                        case "Problema Primal":
+                            numMod = int(varList[i].productProfitMargin)
+                        case "Problema Dual":
+                            numMod = int(varList[i].upBound)
+                        case _:
+                            raise Exception("Invalid Problem type")
+                    
+                    self.numModifierList.append(numMod)
+            
+            else:
+                self.numModifierList = numModifierList
+
         except Exception as err:
             print("Failed to set num modifiers")
             print(err)
@@ -154,33 +166,59 @@ class Problem:
         else:
             return True
 
-    def SetOptimalValue(self, optimalValue):
+    def SetVarValuesAndVarNames(self):
         try:
-            self.optimalValue = optimalValue
+            self.varValues = []
+            self.varNames = []
+            for i in range(len(self.varList)):
+                    self.varValues.append(self.varList[i].varValue)
+                    self.varNames.append(self.varList[i].name)
         except Exception as err:
             print(err)
-            print(f"Failed to set optimalValue for {self.problemName}")
+            return False
+        else:
+            return True
+                
+    def GetVarValues(self):
+        return self.varValues
+
+    def SetOptimalValue(self):
+        try:
+            self.optimalValue = 0
+            for i in range(len(self.varList)):
+                self.optimalValue += (self.varValues[i] * self.numModifierList[i])
+        
+        except Exception as err:
+            print(err)
+            return False
+        
+        else:
+            return True
 
     def GetOptimalValue(self):
         return self.optimalValue
-
+    
     def PrintPrimalProblemResults(self):
         try:
-            profit = 0
-            varValues = []
-            varNames = []
-            
-            for i in range(len(self.varList)):
-                varValues.append(self.varList[i].varValue)
-                varNames.append(self.varList[i].name)
-                profit += (varValues[i] * self.numModifierList[i])
-
-
-            self.SetOptimalValue(profit)
             print("Resultados:")
-            print("Lucro: R$%.2f" % profit)
-            for i in range(len(varValues)):
-                print("%s: %d unidade(s)" % (self.txtHandling.ReplaceUnderlines(varNames[i]), varValues[i]))
+            print("Lucro: R$%.2f" % self.optimalValue)
+            for i in range(len(self.varValues)):
+                print("%s: %d unidade(s)" % (self.txtHandling.ReplaceUnderlines(self.varNames[i]), self.varValues[i]))
+            print("")
+        
+        except Exception as err:
+            print(err)
+            return False
+        
+        else:
+            return True
+        
+    def PrintDualProblemResults(self):
+        try:
+            print("Resultados: ")
+            print("Custo minimo pras 4 refeicoes: R$%.2f" % self.optimalValue)
+            for i in range(len(self.varValues)):
+                print("%s: R$%.2f" % (self.txtHandling.ReplaceUnderlines(self.varNames[i]), self.varValues[i]))
             print("")
         
         except Exception as err:
@@ -203,12 +241,12 @@ class Problem:
 
 def PrimalProblem():
     cafeDaManha = Product("Cafe da Manha", profit=25, category="Integer", lowBound=30, upBound= 130)
-    pratoPrincipal = Product("Prato Principal", profit=30, category="Integer", lowBound=20, upBound=70)
+    almoco = Product("Almoço", profit=30, category="Integer", lowBound=20, upBound=70)
     coffeeBreak = Product("Coffee Break", profit=20, category="Integer", lowBound=40, upBound=150)
     jantar = Product("Jantar", profit=40, category="Integer", lowBound=20, upBound=55)
     
     primalProblem = Problem(lpSense=(-1), problemName= "Problema Primal")
-    menu = [cafeDaManha, pratoPrincipal, coffeeBreak, jantar]
+    menu = [cafeDaManha, almoco, coffeeBreak, jantar]
     
     try:
         if not(primalProblem.SetVariableList(menu)): raise Exception("Failed to set variable list")
@@ -216,42 +254,49 @@ def PrimalProblem():
         if not(primalProblem.SetObjective()): raise Exception("Failed to set objective")
         if not(primalProblem.SetConstraint(numModifierList=[1,1,1,1], lpSense=(-1), constraintLimit=350)): raise Exception("Failed to set constraints")
         if not(primalProblem.SolveProblem()): raise Exception("Failed to solve problem")
+        if not(primalProblem.SetVarValuesAndVarNames()): raise Exception("Failed to set Variable values, and Variable Names")
+        if not(primalProblem.SetOptimalValue()): raise Exception("Failed to set optimal value for primal problem")
 
         if (primalProblem.status == 1):
-            if not(primalProblem.PrintPrimalProblemResults()): raise Exception("Failed to print results")
+            return primalProblem
 
     except Exception as err:
         print(err)
         print("Failed to solve primal problem")
 
 def DualProblem():
-    prodCostsCafeDaManha = ProductionCosts(varName="Custo de produção do cafe da manha", category="Integer", lowBound=10)
-    prodCostsAlmoco = ProductionCosts(varName="Custo de produção do almoço", category="Integer", lowBound=15)
-    prodCostsCoffeeBreak = ProductionCosts(varName="Custo de produção do coffee break", category="Integer", lowBound=8)
-    prodCostsJantar = ProductionCosts(varName="Custo de produção do jantar", category="Integer", lowBound=22)
+    prodCostsCafeDaManha = ProductionCosts(varName="Custo de produção do cafe da manha", category="Integer", lowBound=10, upBound=35)
+    prodCostsAlmoco = ProductionCosts(varName="Custo de produção do almoço", category="Integer", lowBound=15, upBound=45)
+    prodCostsCoffeeBreak = ProductionCosts(varName="Custo de produção do coffee break", category="Integer", lowBound=8, upBound=30)
+    prodCostsJantar = ProductionCosts(varName="Custo de produção do jantar", category="Integer", lowBound=22, upBound=60)
 
     dualProblem = Problem(lpSense=1, problemName="Problema Dual")
     prodCosts = [prodCostsCafeDaManha, prodCostsAlmoco, prodCostsCoffeeBreak, prodCostsJantar]
 
     try:
         if not(dualProblem.SetVariableList(prodCosts)): raise Exception("Failed to set variable list")
-        if not(dualProblem.SetNumModifiers(prodCosts)): raise Exception("Failed to set profit margins")
+        if not(dualProblem.SetNumModifiers(prodCosts, numModifierList=[1, 1, 1, 1])): raise Exception("Failed to set profit margins")
         if not(dualProblem.SetObjective()): raise Exception("Failed to set objective")
+        if not(dualProblem.SetConstraint(numModifierList=[1,1,1,1], lpSense=1, constraintLimit=100)): raise Exception("Failed to set constraints")
+        if not(dualProblem.SolveProblem()): raise Exception("Failed to solve problem")
+        if not(dualProblem.SetVarValuesAndVarNames()): raise Exception("Failed to set Variable values, and Variable Names")
+        if not(dualProblem.SetOptimalValue()): raise Exception("Failed to set optimal value for primal problem")
+        
+        if (dualProblem.status == 1):
+            return dualProblem
 
-
-    pass
-    """Objetivo: Min Σ(Yi*Bi)
-        Bi = {130; 70; 150; 55}
-        Y = {Conjunto com os custos de produção}
-        (4*Y1)+(3*Y2) > 60
-        Y4 - Y2 >= 7
-        Y1 >= 10
-        Y2 >= 15
-        Y3 >= 8
-        Y4 >= 22
-        Σ(Yi) >= 55"""
+    except Exception as err:
+        print(err)
+        print("Failed to solve dual problem")
 
 if __name__ == "__main__":
 
-    PrimalProblem()
+    txtHandle = TextHandling()
+    primalProblemResult = PrimalProblem()
+    dualProblemResult = DualProblem()
+    txtHandle.ClearScreen()
+    primalProblemResult.PrintPrimalProblemResults()
+    dualProblemResult.PrintDualProblemResults()
+    
+    
 
