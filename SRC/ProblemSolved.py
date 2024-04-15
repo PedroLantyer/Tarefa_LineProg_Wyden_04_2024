@@ -216,7 +216,7 @@ class Problem:
     def PrintDualProblemResults(self):
         try:
             print("Resultados: ")
-            print("Custo minimo pras 4 refeicoes: R$%.2f" % self.optimalValue)
+            print("Soma do custo minimo das 4 refeicoes: R$%.2f" % self.optimalValue)
             for i in range(len(self.varValues)):
                 print("%s: R$%.2f" % (self.txtHandling.ReplaceUnderlines(self.varNames[i]), self.varValues[i]))
             print("")
