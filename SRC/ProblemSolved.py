@@ -142,17 +142,17 @@ if __name__ == "__main__":
     coffeeBreak = Product("Coffee Break", profit=20, category="Integer", lowBound=40, upBound=150)
     jantar = Product("Jantar", profit=40, category="Integer", lowBound=20, upBound=55)
     
-    problem = Problem(lpSense=-1)
+    primalProblem = Problem(lpSense=-1)
     menu = [cafeDaManha, pratoPrincipal, coffeeBreak, jantar]
     
-    if ( not(problem.SetVariableList(menu)) or 
-    not(problem.SetProfitMargin(menu)) or
-    not(problem.SetObjective()) or
-    not(problem.SetConstraint(numModifierList=[1,1,1,1], lpSense=(-1), constraintLimit=350)) or
-    not(problem.SolveProblem())):
+    if ( not(primalProblem.SetVariableList(menu)) or 
+    not(primalProblem.SetProfitMargin(menu)) or
+    not(primalProblem.SetObjective()) or
+    not(primalProblem.SetConstraint(numModifierList=[1,1,1,1], lpSense=(-1), constraintLimit=350)) or
+    not(primalProblem.SolveProblem())):
         sys.exit(1)
 
-    if (problem.status == 1):
-        if(problem.PrintResults()): sys.exit(0)
+    if (primalProblem.status == 1):
+        if(primalProblem.PrintResults()): sys.exit(0)
         sys.exit(1)
 
