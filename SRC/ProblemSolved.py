@@ -83,7 +83,6 @@ class Problem:
             self.problem = pulp.LpProblem(name=problemName, sense=lpSense)
             self.problemName = problemName
         
-
     def InitalizeClasses(self):
         self.txtHandling = TextHandling()
 
