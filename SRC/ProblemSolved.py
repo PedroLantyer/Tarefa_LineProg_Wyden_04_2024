@@ -74,6 +74,7 @@ class ProductionCosts:
 
 class Problem:
     def __init__(self, lpSense, problemName = None) -> None:
+        self.InitalizeClasses()
         self.lpSense = lpSense #-1 FOR MAX / 1 FOR MIN / 0 FOR EQUAL TO
         if (problemName == None): 
             self.problem = pulp.LpProblem(sense=lpSense)
@@ -81,7 +82,7 @@ class Problem:
         else: 
             self.problem = pulp.LpProblem(name=problemName, sense=lpSense)
             self.problemName = problemName
-        self.InitalizeClasses()
+        
 
     def InitalizeClasses(self):
         self.txtHandling = TextHandling()
